@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather App</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #00b4db, #0083b0);
+            color: #333;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .container {
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            padding: 30px;
+            width: 80%;
+            max-width: 500px;
+            position: relative;
+        }
+        
+        h1 {
+            color: #0083b0;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .search-container {
+            display: flex;
+            margin-bottom: 25px;
+            position: relative;
+        }
+        
+        input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px 0 0 5px;
+            font-size: 16px;
+            outline: none;
+        }
+        
+        button {
+            background-color: #0083b0;
+            color: white;
+            border: none;
+            border-radius: 0 5px 5px 0;
+            padding: 12px 20px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #00678a;
+        }
+        
+        .autocomplete-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-top: none;
+            border-radius: 0 0 5px 5px;
+            z-index: 100;
+            max-height: 200px;
+            overflow-y: auto;
+            display: none;
+        }
+        
+        .autocomplete-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .autocomplete-item:hover {
+            background-color: #f2f2f2;
+        }
+        
+        .weather-info {
+            text-align: center;
+        }
+        
+        .city-name {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .weather-icon {
+            width: 100px;
+            height: 100px;
+            margin: 10px auto;
+        }
+        
+        .temperature {
+            font-size: 48px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        
+        .description {
+            font-size: 20px;
+            margin-bottom: 20px;
+            text-transform: capitalize;
+        }
+        
+        .details {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 30px;
+            text-align: center;
+        }
+        
+        .detail {
+            flex: 1;
+        }
+        
+        .detail-label {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .detail-value {
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        
+        .error-message {
+            color: #e74c3c;
+            text-align: center;
+            font-weight: bold;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .loading {
+            text-align: center;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .spinner {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #0083b0;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .weather-container {
+            display: none;
+        }
+
+        .initial-message {
+            text-align: center;
+            color: #666;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Weather App</h1>
+        
+        <div class="search-container">
+            <input type="text" id="city-input" placeholder="Enter city name (e.g., Nugegoda, LK)">
+            <button id="search-button">Search</button>
+            <div class="autocomplete-list" id="autocomplete-list"></div>
+        </div>
+        
+        <div class="initial-message" id="initial-message">
+            Enter a city name to get the current weather information
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Loading weather data...</p>
+        </div>
+        
+        <div class="error-message" id="error-message">
+            Could not find weather data for this location. Please try again.
+        </div>
+        
+        <div class="weather-container" id="weather-container">
+            <div class="city-name" id="city-name"></div>
+            <div class="weather-icon">
+                <img id="weather-icon-img" src="" alt="Weather Icon">
+            </div>
+            <div class="temperature" id="temperature"></div>
+            <div class="description" id="description"></div>
+            
+            <div class="details">
+                <div class="detail">
+                    <div class="detail-label">Feels Like</div>
+                    <div class="detail-value" id="feels-like"></div>
+                </div>
+                <div class="detail">
+                    <div class="detail-label">Humidity</div>
+                    <div class="detail-value" id="humidity"></div>
+                </div>
+                <div class="detail">
+                    <div class="detail-label">Wind</div>
+                    <div class="detail-value" id="wind-speed"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchButton = document.getElementById('search-button');
+            const cityInput = document.getElementById('city-input');
+            const weatherContainer = document.getElementById('weather-container');
+            const initialMessage = document.getElementById('initial-message');
+            const loadingElement = document.getElementById('loading');
+            const errorMessage = document.getElementById('error-message');
+            const autocompleteList = document.getElementById('autocomplete-list');
+            
+            // API Key
+            const apiKey = '25be81aa3d3f9cbb7c51a7ed1ef6343d';
+            
+            // Autocomplete variables
+            let debounceTimer;
+            const DEBOUNCE_DELAY = 300; // milliseconds
+            
+            // Event listener for search button
+            searchButton.addEventListener('click', getWeather);
+            
+            // Event listener for Enter key
+            cityInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    getWeather();
+                }
+            });
+            
+            // Event listener for input changes (for autocomplete)
+            cityInput.addEventListener('input', function() {
+                clearTimeout(debounceTimer);
+                
+                // If input is empty, hide autocomplete list
+                if (cityInput.value.trim() === '') {
+                    autocompleteList.style.display = 'none';
+                    return;
+                }
+                
+                // Debounce to avoid making too many API calls
+                debounceTimer = setTimeout(() => {
+                    getCitySuggestions(cityInput.value.trim());
+                }, DEBOUNCE_DELAY);
+            });
+            
+            // Hide autocomplete when clicking outside
+            document.addEventListener('click', function(e) {
+                if (e.target !== cityInput && e.target !== autocompleteList) {
+                    autocompleteList.style.display = 'none';
+                }
+            });
+            
+            // Function to get city suggestions
+            function getCitySuggestions(query) {
+                if (query.length < 2) return;
+                
+                fetch(`https://api.openweathermap.org/geo/1.0/direct?q=${query}&limit=5&appid=${apiKey}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        displaySuggestions(data);
+                    })
+                    .catch(error => {
+                        console.error('Error fetching city suggestions:', error);
+                    });
+            }
+            
+            // Function to display city suggestions
+            function displaySuggestions(cities) {
+                // Clear previous suggestions
+                autocompleteList.innerHTML = '';
+                
+                if (cities.length === 0) {
+                    autocompleteList.style.display = 'none';
+                    return;
+                }
+                
+                // Create suggestion items
+                cities.forEach(city => {
+                    const item = document.createElement('div');
+                    item.className = 'autocomplete-item';
+                    
+                    // Format the city display text based on available data
+                    let displayText = city.name;
+                    if (city.state) displayText += `, ${city.state}`;
+                    if (city.country) displayText += `, ${city.country}`;
+                    
+                    item.textContent = displayText;
+                    
+                    // Add click event to suggestion
+                    item.addEventListener('click', function() {
+                        cityInput.value = displayText;
+                        autocompleteList.style.display = 'none';
+                        getWeather();
+                    });
+                    
+                    autocompleteList.appendChild(item);
+                });
+                
+                // Show the autocomplete list
+                autocompleteList.style.display = 'block';
+            }
+            
+            // Function to get weather data
+            function getWeather() {
+                const cityName = cityInput.value.trim();
+                
+                if (cityName === '') {
+                    showError('Please enter a city name');
+                    return;
+                }
+                
+                // Hide autocomplete list
+                autocompleteList.style.display = 'none';
+                
+                // Show loading spinner
+                initialMessage.style.display = 'none';
+                weatherContainer.style.display = 'none';
+                errorMessage.style.display = 'none';
+                loadingElement.style.display = 'block';
+                
+                // Make API request
+                fetch(`https://api.openweathermap.org/data/2.5/weather?q=${cityName}&units=metric&appid=${apiKey}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('City not found');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        // Hide loading spinner
+                        loadingElement.style.display = 'none';
+                        
+                        // Display weather data
+                        displayWeather(data);
+                    })
+                    .catch(error => {
+                        // Hide loading spinner
+                        loadingElement.style.display = 'none';
+                        
+                        // Show error message
+                        showError('Could not find weather data for this location. Please try again.');
+                        console.error('Error fetching weather data:', error);
+                    });
+            }
+            
+            // Function to display weather data
+            function displayWeather(data) {
+                document.getElementById('city-name').textContent = `${data.name}, ${data.sys.country}`;
+                document.getElementById('temperature').textContent = `${Math.round(data.main.temp)}°C`;
+                document.getElementById('description').textContent = data.weather[0].description;
+                document.getElementById('feels-like').textContent = `${Math.round(data.main.feels_like)}°C`;
+                document.getElementById('humidity').textContent = `${data.main.humidity}%`;
+                document.getElementById('wind-speed').textContent = `${data.wind.speed} m/s`;
+                
+                // Set weather icon
+                const iconCode = data.weather[0].icon;
+                const iconUrl = `https://openweathermap.org/img/wn/${iconCode}@2x.png`;
+                document.getElementById('weather-icon-img').src = iconUrl;
+                
+                // Show weather container
+                weatherContainer.style.display = 'block';
+            }
+            
+            // Function to show error message
+            function showError(message) {
+                errorMessage.textContent = message;
+                errorMessage.style.display = 'block';
+                weatherContainer.style.display = 'none';
+                initialMessage.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
